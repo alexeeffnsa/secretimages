@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+
+  <!-- ✅ Запрет зума (best-effort). Если нужно разрешить — убери maximum-scale=1 и user-scalable=no -->
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+
+  <title>NY Stories</title>
+
+  <style>
+    /* =====================================================================
+       0) НАСТРОЙКИ (обычно правишь тут)
+       ===================================================================== */
+    :root{
+      /* Цвета */
+      --blue:#2aa8ff;
+      --blueDark:#0b63c9;
+      --ink:#11324a;
+
+      /* Тёмный фон страницы */
+      --bgDeep1:#06122e;
+      --bgDeep2:#071a3a;
+
+      /* Геометрия */
+      --shellRadius: 32px;
+      --cardRadius: 26px;
+      --pad: 18px;
+      --footerH: 22px;
+
+      /* Прогресс */
+      --progressH: 4px;
+      --progressGap: 6px;
+
+      /* Аватар */
+      --ringPad: 3px;
+      --avatarSafeWhite: 0px;  /* ✅ белая сейф-зона 1px после градиента */
+
+      /* Переливающаяся рамка (как у текста) */
+      --borderW: 3px;
+      --shimmerSpeed: 2.6s;
+
+      /* Медиа (картинка 1080×1920 без обрезки) */
+      --mediaSafe: 3px;
+    }
+
+    /* =====================================================================
+       1) БАЗА
+       ===================================================================== */
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      overflow:hidden; /* ✅ страница не скроллится */
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+
+      background:
+        radial-gradient(900px 700px at 18% 10%, rgba(10,74,138,.35) 0%, rgba(10,74,138,0) 55%),
+        radial-gradient(900px 700px at 85% 85%, rgba(42,168,255,.18) 0%, rgba(42,168,255,0) 58%),
+        linear-gradient(180deg, var(--bgDeep1), var(--bgDeep2));
+    }
+
+    /* Пока прелоадер — прячем сторис */
+    body.loading .shell{ opacity:0; pointer-events:none; }
+
+    .stage{
+      position:relative;
+      width:100%;
+      height:100%;
+      display:grid;
+      place-items:center;
+
+      padding:
+        max(14px, env(safe-area-inset-top))
+        14px
+        max(14px, env(safe-area-inset-bottom));
+    }
+
+    /* =====================================================================
+       2) ХЛОПЬЯ СНЕГА
+       ===================================================================== */
+    .snow{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+    }
+    .flake{
+      position:absolute;
+      top:-16vh;
+      border-radius:999px;
+      background: rgba(255,255,255,.90);
+      box-shadow: 0 0 10px rgba(255,255,255,.20);
+      filter: blur(var(--blur));
+      opacity: var(--op);
+      animation: fall var(--dur) linear infinite;
+      transform: translate3d(0,0,0);
+    }
+    @keyframes fall{
+      0%   { transform: translate3d(var(--x), -16vh, 0); }
+      100% { transform: translate3d(calc(var(--x) + var(--drift)), 112vh, 0); }
+    }
+
+    /* =====================================================================
+       3) ОБОЛОЧКА (белый -> светло-голубой), прозрачная + blur
+       ===================================================================== */
+    .shell{
+      position:relative;
+      width:min(420px, 92vw);
+      height:min(820px, 92vh);
+      aspect-ratio: 9 / 16;
+      border-radius: var(--shellRadius);
+      overflow:hidden;
+
+      background: linear-gradient(180deg,
+        rgba(255,255,255,.92) 0%,
+        rgba(240,250,255,.84) 55%,
+        rgba(215,239,255,.78) 100%
+      );
+
+      border: 1px solid rgba(255,255,255,.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+
+      box-shadow: 0 18px 52px rgba(0,0,0,.30);
+      transition: opacity .2s ease;
+    }
+
+    /* =====================================================================
+       4) ВНУТРЕННИЙ БЛОК (card)
+       ===================================================================== */
+    .card{
+      position:absolute;
+      inset: 18px 16px 18px;
+      border-radius: var(--cardRadius);
+
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(42,168,255,.10);
+      box-shadow: 0 12px 34px rgba(0,0,0,.14);
+
+      padding: var(--pad);
+      padding-bottom: calc(var(--pad) + var(--footerH));
+
+      display:flex;
+      flex-direction:column;
+      min-height:0; /* iOS фикс */
+    }
+
+    .content{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:0;
+      overflow:hidden; /* ✅ общий скролл запрещён */
+    }
+
+    /* =====================================================================
+       5) ЕДИНЫЙ ФОРМАТ “ПЕРЕЛИВАЮЩЕЙСЯ РАМКИ”
+       ===================================================================== */
+    .frameLikeText{
+      border: var(--borderW) solid transparent;
+      background:
+        linear-gradient(#fff,#fff) padding-box,
+        linear-gradient(90deg,
+          var(--blue),
+          var(--blueDark),
+          var(--blue),
+          var(--blueDark),
+          var(--blue)
+        ) border-box;
+
+      background-size: 100% 100%, 300% 100%;
+      background-position: 0 0, 0% 50%;
+      animation: shimmer var(--shimmerSpeed) ease-in-out infinite;
+    }
+    @keyframes shimmer{
+      0%   { background-position: 0 0,   0% 50%; }
+      50%  { background-position: 0 0, 100% 50%; }
+      100% { background-position: 0 0,   0% 50%; }
+    }
+
+    /* =====================================================================
+       6) HEADER (аватар + имя)
+       ===================================================================== */
+    .header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-height:62px;
+    }
+
+    .avatarWrap{
+      width:62px;
+      height:62px;
+      position:relative;
+      flex:0 0 auto;
+      transform: translateZ(0);
+    }
+
+    /* Крутится только ободок */
+    .ring{
+      position:absolute;
+      inset:0;
+      border-radius:999px;
+    }
+    .ring::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:999px;
+      padding: var(--ringPad);
+
+      background: conic-gradient(
+        from 0deg,
+        rgba(42,168,255,.95),
+        rgba(155,227,255,.95),
+        rgba(255,255,255,.95),
+        rgba(155,227,255,.95),
+        rgba(42,168,255,.95)
+      );
+      animation: ringSpin 2.8s linear infinite;
+
+      -webkit-mask: radial-gradient(circle, transparent calc(50% - var(--ringPad)), #000 calc(50% - var(--ringPad)));
+              mask: radial-gradient(circle, transparent calc(50% - var(--ringPad)), #000 calc(50% - var(--ringPad)));
+    }
+    @keyframes ringSpin{ to{ transform: rotate(360deg);} }
+
+    /* ✅ белая сейф-зона 1px после градиента */
+    .avatarSafe{
+      position:absolute;
+      inset: var(--ringPad);
+      border-radius:999px;
+      background:#fff;
+      padding: var(--avatarSafeWhite);
+      overflow:hidden;
+    }
+    .avatar{
+      width:100%;
+      height:100%;
+      border-radius:999px;
+      overflow:hidden;
+      background: linear-gradient(145deg, rgba(155,227,255,.30), rgba(42,168,255,.10));
+    }
+    .avatar img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit: cover;
+    }
+
+    .nameBox{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      color: var(--ink);
+    }
+    .nameBox .label{
+      font-size:11px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color: rgba(17,50,74,.55);
+    }
+    .nameBox b{
+      font-size:16px;
+      line-height:1.2;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* =====================================================================
+       7) ПРОГРЕСС
+       ===================================================================== */
+    .topProgress{
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+    .progress{
+      display:flex;
+      gap: var(--progressGap);
+    }
+    .seg{
+      flex:1;
+      height: var(--progressH);
+      border-radius:999px;
+      background: rgba(0,0,0,.06);
+      overflow:hidden;
+    }
+    .fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background: var(--blue);
+    }
+
+    /* =====================================================================
+       8) ПОЗДРАВЛЕНИЕ (только textOnly)
+       ===================================================================== */
+    .pill{
+      border-radius:16px;
+      padding:12px;
+      overflow:hidden;
+
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+
+      flex:1 1 auto; /* ✅ на маленьких экранах сжимается */
+    }
+    .pillLabel{
+      font-size:11px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color: rgba(17,50,74,.58);
+      margin-bottom:6px;
+      flex:0 0 auto;
+    }
+    .pillTextScroll{
+      flex:1 1 auto;
+      min-height:0;
+
+      overflow:auto;
+      -webkit-overflow-scrolling: touch; /* ✅ iOS скролл */
+      overscroll-behavior: contain;
+
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+
+      touch-action: pan-y; /* ✅ даём пальцу скроллить */
+    }
+    .pillTextScroll::-webkit-scrollbar{ width:0; height:0; }
+    .pillText{
+      font-size:15px;
+      line-height:1.38;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--ink);
+      text-align:left;
+    }
+
+    /* =====================================================================
+       9) КНОПКА МУЗЫКИ (только на одной сторис)
+       ===================================================================== */
+    .musicBtn{
+      display:none; /* показываем в JS только на нужной сторис */
+      width:100%;
+      border-radius:14px;
+      padding:10px 12px;
+      border:none;
+      background: transparent;
+      color: var(--ink);
+      font-size:14px;
+      line-height:1;
+      cursor:pointer;
+
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+
+      flex:0 0 auto;
+    }
+    .musicBtn:active{ transform: scale(0.99); }
+
+    /* =====================================================================
+       10) MEDIA (картинка только на 1 и 9)
+       ===================================================================== */
+    .media{
+      display:none; /* включаем на imageOnly */
+      border-radius:18px;
+      overflow:hidden;
+      padding: var(--mediaSafe);
+
+      flex:1 1 auto;
+      min-height:0;
+    }
+    .media img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit: contain; /* ✅ 1080×1920 без обрезки */
+      background:#fff;
+      border-radius: calc(18px - var(--mediaSafe));
+    }
+
+    /* =====================================================================
+       11) FOOTER
+       ===================================================================== */
+    .footer{
+      position:absolute;
+      left: var(--pad);
+      right: var(--pad);
+      bottom: var(--pad);
+      height: var(--footerH);
+
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+
+      color: rgba(17,50,74,.55);
+      font-size:12px;
+      pointer-events:none;
+    }
+
+    /* =====================================================================
+       12) РЕЖИМЫ СТОРИС
+       ===================================================================== */
+    .mode-imageOnly .pill{ display:none; }
+    .mode-imageOnly .musicBtn{ display:none; }
+    .mode-imageOnly .media{ display:block; }
+    .mode-textOnly .media{ display:none; }
+
+    /* =====================================================================
+       13) PRELOADER / SPINNER (полое кольцо, центр прозрачный)
+       ===================================================================== */
+    .preloader{
+      position:fixed;
+      inset:0;
+      z-index:9999;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:14px;
+
+      background:
+        radial-gradient(900px 700px at 18% 10%, rgba(10,74,138,.35) 0%, rgba(10,74,138,0) 55%),
+        radial-gradient(900px 700px at 85% 85%, rgba(42,168,255,.18) 0%, rgba(42,168,255,0) 58%),
+        linear-gradient(180deg, var(--bgDeep1), var(--bgDeep2));
+    }
+    .preloader.hidden{
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .25s ease;
+    }
+    .spinner{
+      width:64px;
+      height:64px;
+      border-radius:999px;
+
+      background: conic-gradient(
+        from 0deg,
+        rgba(42,168,255,.95),
+        rgba(155,227,255,.95),
+        rgba(255,255,255,.95),
+        rgba(155,227,255,.95),
+        rgba(42,168,255,.95)
+      );
+
+      -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%);
+              mask: radial-gradient(circle, transparent 58%, #000 59%);
+
+      animation: spinLoader 1s linear infinite;
+    }
+    @keyframes spinLoader{ to{ transform: rotate(360deg); } }
+    .preloaderText{
+      font-size:13px;
+      color: rgba(255,255,255,.75);
+    }
+
+    /* =====================================================================
+       14) АДАПТИВ (очень маленькие экраны)
+       ===================================================================== */
+    @media (max-width: 380px){
+      :root{ --pad: 14px; }
+      .card{ inset: 14px 12px 12px; }
+      .avatarWrap{ width:56px; height:56px; }
+      .pillText{ font-size:14px; }
+    }
+    /* =====================================================================
+       15) ✅ Переливающийся "неоновый" текст (розово-красная палитра как на картинке)
+       ===================================================================== */
+.shimmerTextNeon{
+  display:inline-block;
+
+  background: linear-gradient(
+    90deg,
+    #F40C83,
+    #D9026A,
+    #F6244C,
+    #F5102B,
+    #E83F68,
+    #F675B3,
+    #F40C83
+  );
+  background-size: 350% 100%;
+  background-position: 0% 50%;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  color: transparent !important;
+  -webkit-text-fill-color: transparent; /* ✅ Safari/iOS фикс */
+
+  animation: shimmerTextNeon 2.2s ease-in-out infinite;
+}
+
+@keyframes shimmerTextNeon{
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+    /* =====================================================================
+       16) ✅ Переливающийся "неоновый" текст (голубой градиент)
+       ===================================================================== */
+.shimmerTextBlue{
+  display:inline-block;
+
+  background: linear-gradient(
+    90deg,
+    #0c71f4,
+    #8004e6,
+    #186dee,
+    #6dadf7,
+    #4bc0f7,
+    #557cc4,
+    #2105be
+  );
+  background-size: 350% 100%;
+  background-position: 0% 50%;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  color: transparent !important;
+  -webkit-text-fill-color: transparent; /* ✅ Safari/iOS фикс */
+
+  animation: shimmerTextBlue 4.2s ease-in-out infinite;
+}
+
+@keyframes shimmerTextBlue{
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+  </style>
+</head>
+
+<body class="loading">
+  <!-- ===================== PRELOADER ===================== -->
+  <div class="preloader" id="preloader" aria-label="Волшебство уже близко">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="preloaderText">Волшебство уже близко</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="snow" id="snow"></div>
+
+    <div class="shell">
+      <div class="card" id="card">
+        <div class="content">
+          <!-- HEADER: виден всегда -->
+          <div class="header">
+            <div class="avatarWrap" aria-hidden="true">
+              <div class="ring"></div>
+              <div class="avatarSafe">
+                <div class="avatar">
+                  <img id="avatarImg" alt="avatar" src="" />
+                </div>
+              </div>
+            </div>
+
+            <div class="nameBox">
+              <div class="label" id="nameLabel">ИМЯ</div>
+              <b id="nameValue">Иван</b>
+            </div>
+          </div>
+
+          <!-- PROGRESS -->
+          <div class="topProgress">
+            <div class="progress" id="progress"></div>
+          </div>
+
+          <!-- Поздравление (только textOnly) -->
+          <div class="pill frameLikeText" id="pill">
+            <div class="pillLabel" id="greetLabel">ПОЗДРАВЛЕНИЕ</div>
+            <div class="pillTextScroll" id="pillScroll">
+              <div class="pillText" id="greetText"></div>
+            </div>
+          </div>
+
+          <!-- Кнопка музыки (только на одной сторис) -->
+          <button class="musicBtn frameLikeText" id="musicBtn" type="button" aria-label="Музыка">
+            <span id="musicBtnText">▶ Читать под музыку</span>
+          </button>
+
+          <!-- Картинка (только 1 и 9) -->
+          <div class="media frameLikeText" id="media"></div>
+        </div>
+
+        <div class="footer">
+          <span id="counter">1 / 9</span>
+          <span>Тап слева/справа • Свайп</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ Музыка: loop = повтор.
+       Ссылку подставляем в JS из stories[].musicUrl -->
+  <audio id="bgMusic" preload="auto" loop>
+    <source id="bgMusicSrc" src="" type="audio/mpeg" />
+  </audio>
+
+  <script>
+    /* =====================================================================
+       1) Запрет зума (best-effort)
+       ===================================================================== */
+    window.addEventListener('wheel', (e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive:false });
+    window.addEventListener('gesturestart', (e) => e.preventDefault());
+    window.addEventListener('gesturechange', (e) => e.preventDefault());
+    window.addEventListener('gestureend', (e) => e.preventDefault());
+
+    /* =====================================================================
+       2) СТОРИС — ПРАВИТЬ ТУТ
+       ===================================================================== */
+ const stories = [
+      {
+        type: "textOnly",
+        nameLabel: "Добро пожаловать",
+        nameValue: "Модерируем 2.0",
+        greetLabel: "Мы вернулись :)",
+        greetHTML: `Вы возможно и не знаете что такое <span class="shimmerTextBlue"><strong>"Модерируем 2.0"</strong></span>, ведь последним выпуском был прошлогодний рождественский спэшал, но теперь знайте мы тут рассказываем о нашей жизни, а архивы до сих хранятся в файлах чатика. 
+        <br>Но теперь настало время <strong>вернуться в новом формате</strong> и пожелать всем вам <span class="shimmerTextNeon"><strong>прекрасного Нового года.</strong></span> Листайте как обычные сторис тапами или свайпами слева на право и наслаждайтесь вашими поздравлениями друг другу, а еще можете это сделать под музыку - просто нажмите кнопку ниже`,
+        avatarUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/logo.jpg",
+        hasMusic: true,
+        musicUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/hny.mp3" /* 👈 вставь прямую ссылку на mp3 */
+      },
+
+      {
+        type: "textOnly",
+        nameLabel: "От кого",
+        nameValue: "Юра",
+        greetLabel: "Кому: Модераторы",
+        greetHTML: 'Хочу поздравить с Новым годом <span class="shimmerTextNeon">самую лучшую команду модераторов.</span><br>И это не просто слова, я правда уверен, что текущий состав один из самых сильных! Каждый из вас по-своему уникален, и именно в этом ваша сила! С первых дней создания команды я наблюдал, как она развивается, последний год я старался делать всё возможное, чтобы убрать лишние задачи и сделать вашу работу комфортней, и я ценю, что вы меня поддерживали в этом и прислушивались, спасибо вам за это! Лиза, Саша, Настя, Женя, вы очень крутые, и я очень надеюсь, что в этом году вы сможете исполнить все свои мечты и найти своё счастье, улыбка на ваших лицах — это главное украшение, так пусть в новом году она не сходит с вашего лица! <span class="shimmerTextNeon">C новым 2026 годом, дорогие друзья :)))</span>',
+        avatarUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/yura.jpg"
+      },
+      {
+        type: "textOnly",
+        nameLabel: "От кого",
+        nameValue: "Даша",
+        greetLabel: "Ярких моментов",
+        greetHTML: 'Дорогие модераторы! Поздравляю каждого из вас с Новым Годом и надеюсь, что вы великолепно его проводите🌲Желаю, чтобы в следующем году в чатах было меньше пожаров и бомбардировок, а в вашей личной жизни было как можно больше приятных и запоминающихся моментов! Берегите себя и спасибо за то, что вы с нами 💙',
+        avatarUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/zglsh.jpg"
+      },
+      {
+        type: "textOnly",
+        nameLabel: "От кого",
+        nameValue: "Елизавета",
+        greetLabel: "Здоровья и радости",
+        greetHTML: 'Дорогие Модераторы, с Новым годом! 🎄 От всей души желаю вам здоровья — самого главного ресурса. И пусть новый год будет для вас стабильным и щедрым — чтобы не приходилось переживать о важном и оставалось пространство для радости. Спасибо каждому, что вы есть в этой команде. Будем и дальше держать друг друга в тонусе и в тепле. Ещё раз с праздником!☃️',
+        avatarUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/liza.jpg"
+      },
+      {
+        type: "textOnly",
+        nameLabel: "От кого",
+        nameValue: "Саша",
+        greetLabel: "Ярких моментов",
+        greetHTML: 'Пусть год будет щедрым на хорошие события: новые идеи, путешествия и маленькие радости каждый день. 🎁 и блаблабла еще много блабла бла и еще больше бла бла',
+        avatarUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/sasha.jpg"
+      },
+      {
+        type: "textOnly",
+        nameLabel: "Итоги",
+        nameValue: "stickers",
+        greetLabel: "Итоги года",
+        greetHTML: 'Внезапно врываеися ✨ Ходят слухи что некие стикеры стали неотъемлемой частью комьюнити Лавки, как и эмодзи, нарисованные специально дя новых закрепленных сообщений, впрочем как и сами обновленные закреплённые сообщения в чатах. Выросшие из одного маленького эксперимента они встречаются в совсем необычных местах :). Но давайте об итогах: за 2025 год мы полностью перестроили закрепленные сообщения в чатах с Москвой и перенесли их в чаты с Санкт-Петербургом, адаптировав под разные города и даже появились в Иркутске :) Тем временем стикеры были использованы 30520 раз за 2025-й год, а стикер «Читай закрепы» был использован 324 раза, не считая предыдущего его варианта. Вот такие мини итоги :) Счастливого Нового года и да прибудет с вами сила!',
+        avatarUrl: "https://raw.githubusercontent.com/alexeeffnsa/secretimages/refs/heads/main/special/FDC-team3.jpg"
+      },
+      {
+        type: "textOnly",
+        nameLabel: "ИМЯ",
+        nameValue: "Виктория",
+        greetLabel: "ПОЗДРАВЛЕНИЕ",
+        greetHTML: `
+        С Новым годом! 
+        <span class="shimmerTextNeon">Пусть мечты сбываются</span> ✨
+        `,
+        avatarUrl: "PASTE_AVATAR_URL_FOR_STORY_8_HERE"
+      },
+
+      {
+        type: "imageOnly",
+        nameLabel: "Небольшой сюрприз",
+        nameValue: "Модерируем 2.0",
+        avatarUrl: "PASTE_AVATAR_URL_FOR_STORY_9_HERE",
+        mediaUrl:  "PASTE_IMAGE_URL_1080x1920_FOR_STORY_9_HERE"
+      }
+    ];
+
+    /* =====================================================================
+       3) Тайминг сторис
+       ===================================================================== */
+    const STORY_MS = 90000;
+
+    /* =====================================================================
+       4) DOM
+       ===================================================================== */
+    const preloaderEl = document.getElementById("preloader");
+    const stage = document.getElementById("stage");
+    const card  = document.getElementById("card");
+
+    const progressEl  = document.getElementById("progress");
+    const counterEl   = document.getElementById("counter");
+
+    const avatarImg   = document.getElementById("avatarImg");
+    const nameLabelEl = document.getElementById("nameLabel");
+    const nameValueEl = document.getElementById("nameValue");
+
+    const greetLabelEl= document.getElementById("greetLabel");
+    const greetTextEl = document.getElementById("greetText");
+    const pillScroll  = document.getElementById("pillScroll");
+
+    const mediaEl     = document.getElementById("media");
+
+    const musicBtn    = document.getElementById("musicBtn");
+    const musicBtnText= document.getElementById("musicBtnText");
+
+    const bgMusic     = document.getElementById("bgMusic");
+    const bgMusicSrc  = document.getElementById("bgMusicSrc");
+    bgMusic.loop = true; // ✅ повтор
+
+    /* =====================================================================
+       5) Прогресс сегменты
+       ===================================================================== */
+    const fills = [];
+    for (let i=0;i<stories.length;i++){
+      const seg = document.createElement("div");
+      seg.className = "seg";
+      const fill = document.createElement("div");
+      fill.className = "fill";
+      seg.appendChild(fill);
+      progressEl.appendChild(seg);
+      fills.push(fill);
+    }
+
+    /* =====================================================================
+       6) Заглушки
+       ===================================================================== */
+    function isPlaceholder(url){
+      return !url || String(url).startsWith("PASTE_");
+    }
+
+    function svgDataUri(title, subtitle){
+      const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eaf7ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="1280" fill="url(#g)"/>
+  <text x="50%" y="54%" text-anchor="middle"
+        font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial"
+        font-size="38" fill="#11324a" fill-opacity=".75">${title}</text>
+  <text x="50%" y="60%" text-anchor="middle"
+        font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial"
+        font-size="20" fill="#11324a" fill-opacity=".55">${subtitle}</text>
+</svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.trim());
+    }
+
+    /* =====================================================================
+       7) СТОРИС-ЛОГИКА
+       ===================================================================== */
+    let idx = 0;
+    let startTs = performance.now();
+    let raf = null;
+
+    function clamp(i){
+      const n = stories.length;
+      return (i % n + n) % n;
+    }
+
+    function applyMode(story){
+      card.classList.toggle("mode-imageOnly", story.type === "imageOnly");
+      card.classList.toggle("mode-textOnly",  story.type === "textOnly");
+    }
+
+    function setProgressBase(){
+      fills.forEach((f, i) => { f.style.width = (i < idx) ? "100%" : "0%"; });
+    }
+
+    function renderAvatar(story, index){
+      const src = (!isPlaceholder(story.avatarUrl))
+        ? story.avatarUrl
+        : svgDataUri("AVATAR", `вставь avatarUrl для сторис #${index+1}`);
+      avatarImg.src = src;
+    }
+
+    function renderMedia(story, index){
+      mediaEl.innerHTML = "";
+      if (story.type !== "imageOnly") return;
+
+      const src = (!isPlaceholder(story.mediaUrl))
+        ? story.mediaUrl
+        : svgDataUri("IMAGE 1080×1920", `вставь mediaUrl для сторис #${index+1}`);
+
+      const img = document.createElement("img");
+      img.alt = "story image";
+      img.src = src;
+      mediaEl.appendChild(img);
+    }
+
+    /* ===================== МУЗЫКА =====================
+       ✅ Музыка НЕ останавливается при перелистывании.
+       ✅ Кнопка видна только на одной сторис.
+       ✅ Нажатие на кнопку НЕ перелистывает сторис (см. блок stopPropagation ниже).
+    */
+    let musicOn = false;
+    let currentMusicUrl = "";
+
+    function renderMusic(story){
+      const has = !!(story.hasMusic && story.musicUrl && !isPlaceholder(story.musicUrl));
+
+      if (has){
+        musicBtn.style.display = "flex";
+
+        if (currentMusicUrl !== story.musicUrl){
+          currentMusicUrl = story.musicUrl;
+          bgMusicSrc.src = story.musicUrl;
+          bgMusic.load();
+        }
+
+        musicBtnText.textContent = (!bgMusic.paused && musicOn) ? "Пауза" : "▶ Читать под музыку";
+      } else {
+        musicBtn.style.display = "none";
+      }
+    }
+
+    function render(){
+      const s = stories[idx];
+
+      applyMode(s);
+
+      /* ✅ Имя обновляем ВСЕГДА (чтобы не “кэшировалось”) */
+      nameLabelEl.textContent = s.nameLabel ?? "ИМЯ";
+      nameValueEl.textContent = s.nameValue ?? "";
+
+      /* Текст поздравления только для textOnly */
+      if (s.type === "textOnly"){
+        greetLabelEl.textContent = s.greetLabel ?? "ПОЗДРАВЛЕНИЕ";
+        greetTextEl.innerHTML  = s.greetHTML  ?? "";
+        pillScroll.scrollTop = 0;
+      } else {
+        greetLabelEl.textContent = "";
+        greetTextEl.innerHTML = s.greetHTML ?? (s.greetText ?? "");
+      }
+
+      renderAvatar(s, idx);
+      renderMedia(s, idx);
+      renderMusic(s);
+
+      counterEl.textContent = `${idx + 1} / ${stories.length}`;
+
+      setProgressBase();
+      startTs = performance.now();
+      tick();
+    }
+
+    function next(){ idx = clamp(idx + 1); render(); }
+    function prev(){ idx = clamp(idx - 1); render(); }
+
+    function tick(){
+      if (raf) cancelAnimationFrame(raf);
+
+      const loop = (t) => {
+        const p = Math.min(1, (t - startTs) / STORY_MS);
+        fills[idx].style.width = (p * 100).toFixed(2) + "%";
+        if (p >= 1) { next(); return; }
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
+    }
+
+    /* =====================================================================
+       8) ТАПЫ + СВАЙПЫ ПО ВСЕМУ ЭКРАНУ
+       - защита от двойного перелистывания
+       - не мешаем скроллу текста
+       - НЕ листаем при нажатии на кнопку музыки
+       ===================================================================== */
+    const TAP_MOVE_THRESHOLD = 10;
+    const SWIPE_THRESHOLD = 40;
+    const SWIPE_Y_LIMIT = 60;
+
+    let startX=0, startY=0;
+    let startedInTextScroll=false;
+    let navLockUntil=0;
+
+    function canNav(){ return performance.now() >= navLockUntil; }
+    function lockNav(){ navLockUntil = performance.now() + 260; }
+
+    stage.addEventListener("pointerdown", (e)=>{
+      startX = e.clientX;
+      startY = e.clientY;
+      startedInTextScroll = !!e.target.closest("#pillScroll");
+    }, {passive:true});
+
+    stage.addEventListener("pointerup", (e)=>{
+      /* ✅ Если тап/жест по кнопке музыки — не навигируем */
+      if (e.target.closest("#musicBtn")) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (startedInTextScroll && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > TAP_MOVE_THRESHOLD){
+        return; // это скролл текста
+      }
+
+      if (Math.abs(dx) >= SWIPE_THRESHOLD && Math.abs(dy) <= SWIPE_Y_LIMIT){
+        if (!canNav()) return;
+        lockNav();
+        if (dx < 0) next(); else prev();
+        return;
+      }
+
+      if (Math.abs(dx) <= TAP_MOVE_THRESHOLD && Math.abs(dy) <= TAP_MOVE_THRESHOLD){
+        if (!canNav()) return;
+        lockNav();
+
+        const mid = window.innerWidth / 2;
+        if (e.clientX < mid) prev();
+        else next();
+      }
+    }, {passive:true});
+
+    /* ✅ Дополнительная защита: не даём кнопке “всплыть” до stage */
+    ["pointerdown","pointerup","click"].forEach(evt=>{
+      musicBtn.addEventListener(evt, (e)=> e.stopPropagation());
+    });
+
+    /* =====================================================================
+       9) КНОПКА МУЗЫКИ
+       ===================================================================== */
+    musicBtn.addEventListener("click", async () => {
+      try{
+        if (bgMusic.paused){
+          await bgMusic.play();  // iOS разрешит только по клику
+          musicOn = true;
+          musicBtnText.textContent = "Пауза";
+        } else {
+          bgMusic.pause();
+          musicOn = false;
+          musicBtnText.textContent = "▶ Читать под музыку";
+        }
+      } catch(err){
+        console.log("Music play blocked:", err);
+        musicBtnText.textContent = "▶ Нажми ещё раз";
+      }
+    });
+
+    /* =====================================================================
+       10) Хлопья снега
+       ===================================================================== */
+    const snow = document.getElementById("snow");
+    const rand = (a,b)=>Math.random()*(b-a)+a;
+
+    const FLAKES = 90;
+    for (let i=0;i<FLAKES;i++){
+      const el = document.createElement("div");
+      el.className = "flake";
+
+      const size = rand(3, 10);
+      const dur  = rand(8, 18);
+      const x    = rand(-5, 105);
+      const drift= rand(-30, 30);
+      const delay= rand(-18, 0);
+      const op   = rand(0.25, 0.85);
+      const blur = rand(0, 1.4);
+
+      el.style.width = size + "px";
+      el.style.height = size + "px";
+      el.style.setProperty("--dur", dur + "s");
+      el.style.setProperty("--x", x + "vw");
+      el.style.setProperty("--drift", drift + "px");
+      el.style.animationDelay = delay + "s";
+      el.style.setProperty("--op", op.toFixed(2));
+      el.style.setProperty("--blur", blur.toFixed(2) + "px");
+
+      snow.appendChild(el);
+    }
+
+    /* =====================================================================
+       11) ПРЕДЗАГРУЗКА КАРТИНОК + ЗАДЕРЖКА 10С (тест)
+       - Чтобы убрать задержку: MIN_SPINNER_MS = 0
+       ===================================================================== */
+    function collectUrls(){
+      const urls = [];
+      for (const s of stories){
+        if (s.avatarUrl && !isPlaceholder(s.avatarUrl)) urls.push(s.avatarUrl);
+        if (s.mediaUrl  && !isPlaceholder(s.mediaUrl))  urls.push(s.mediaUrl);
+      }
+      return Array.from(new Set(urls));
+    }
+
+    function preloadImage(url){
+      return new Promise((resolve)=>{
+        const img = new Image();
+        img.onload  = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+      });
+    }
+
+    async function waitReady(){
+      if (document.readyState !== "complete" && document.readyState !== "interactive"){
+        await new Promise(r => document.addEventListener("DOMContentLoaded", r, { once:true }));
+      }
+      const urls = collectUrls();
+      if (urls.length) await Promise.all(urls.map(preloadImage));
+      if (document.fonts && document.fonts.ready){
+        try{ await document.fonts.ready; }catch(e){}
+      }
+    }
+
+    (async ()=>{
+      const MIN_SPINNER_MS = 10000; // ✅ тестовая задержка. Поставь 0 — уберёшь.
+      const start = performance.now();
+
+      await waitReady();
+
+      const remain = Math.max(0, MIN_SPINNER_MS - (performance.now() - start));
+      if (remain) await new Promise(r=>setTimeout(r, remain));
+
+      document.body.classList.remove("loading");
+      preloaderEl.classList.add("hidden");
+      setTimeout(()=>preloaderEl.remove(), 300);
+
+      render();
+    })();
+  </script>
+</body>
+</html>
