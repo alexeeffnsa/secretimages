@@ -93,13 +93,21 @@
             width: 340px; 
             max-width: calc(100vw - 32px);
         }
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
         .btn { 
             border: none; 
-            padding: 18px 20px; 
+            padding: 22px 20px; 
             border-radius: 20px; 
             font-weight: 700; 
             cursor: pointer; 
             width: 100%;
+        }
+        .controls-row .btn {
+            flex: 1;
         }
         .btn-boost { background: #1e293b; color: #fff; }
         .btn-skip { background: #fff; border: 2px solid #1e293b; transition: 0.3s; }
@@ -139,8 +147,10 @@
 
     <div class="controls">
         <button class="btn btn-boost" id="boost">+19 000 ₽</button>
-        <button class="btn btn-skip" id="skip">Пропустить день</button>
-        <button class="btn btn-reroll" id="reroll">Переиграть сумму</button>
+        <div class="controls-row">
+            <button class="btn btn-skip" id="skip">Пропустить</button>
+            <button class="btn btn-reroll" id="reroll">Переиграть</button>
+        </div>
     </div>
 
     <div id="tg-banner">Открой через Telegram, чтобы сохранялся прогресс.</div>
@@ -271,16 +281,17 @@
         }
 
         function update() {
+            const isGameOver = saved >= GOAL || days <= 0;
             document.getElementById('s_val').textContent = saved.toLocaleString();
             document.getElementById('d_val').textContent = days;
             document.getElementById('r_val').textContent = Math.max(0, Math.ceil((GOAL-saved)/1000)) + 'k';
             document.getElementById('fill').style.height = Math.min(100, (saved / GOAL * 100)) + '%';
             
-            const isGameOver = saved >= GOAL || days <= 0;
             if (isGameOver) document.getElementById('bat').className = 'battery';
 
             const sBtn = document.getElementById('skip');
             sBtn.className = `btn btn-skip ${skipCooldown > 0 ? 'penalized' : ''}`;
+            sBtn.disabled = isGameOver;
             
             const rBtn = document.getElementById('reroll');
             rBtn.disabled = isGameOver;
