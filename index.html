@@ -27,7 +27,7 @@
             position: relative; 
             width: 340px; 
             height: 70dvh; 
-            max-height: calc(100dvh - 180px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+            max-height: calc(100dvh - 240px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
             background: #fff; 
             border-radius: 50px; 
             border: 4px solid #e2e8f0;
@@ -84,11 +84,28 @@
         .bubble.lifesaver { background: #f0fdf4 !important; }
         .bubble.safe-haven { background: #f5f3ff !important; border-color: #8b5cf6 !important; }
 
-        .controls { display: flex; gap: 10px; z-index: 30; margin-bottom: 10px; }
-        .btn { border: none; padding: 15px 20px; border-radius: 20px; font-weight: 700; cursor: pointer; }
+        .controls { 
+            display: flex; 
+            flex-direction: column;
+            gap: 10px; 
+            z-index: 30; 
+            margin-bottom: 10px; 
+            width: 340px; 
+            max-width: calc(100vw - 32px);
+        }
+        .btn { 
+            border: none; 
+            padding: 18px 20px; 
+            border-radius: 20px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            width: 100%;
+        }
         .btn-boost { background: #1e293b; color: #fff; }
         .btn-skip { background: #fff; border: 2px solid #1e293b; transition: 0.3s; }
         .btn-skip.penalized { background: #fee2e2; border-color: #f87171; color: #b91c1c; }
+        .btn-reroll { background: #f8fafc; border: 2px solid #cbd5e1; color: #64748b; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #tg-banner {
             position: fixed; bottom: 0; width: 100%; background: #334155; color: #fff;
@@ -123,6 +140,7 @@
     <div class="controls">
         <button class="btn btn-boost" id="boost">+19 000 ₽</button>
         <button class="btn btn-skip" id="skip">Пропустить день</button>
+        <button class="btn btn-reroll" id="reroll">Переиграть сумму</button>
     </div>
 
     <div id="tg-banner">Открой через Telegram, чтобы сохранялся прогресс.</div>
@@ -258,16 +276,24 @@
             document.getElementById('r_val').textContent = Math.max(0, Math.ceil((GOAL-saved)/1000)) + 'k';
             document.getElementById('fill').style.height = Math.min(100, (saved / GOAL * 100)) + '%';
             
-            if (saved >= GOAL || days <= 0) document.getElementById('bat').className = 'battery';
+            const isGameOver = saved >= GOAL || days <= 0;
+            if (isGameOver) document.getElementById('bat').className = 'battery';
 
             const sBtn = document.getElementById('skip');
             sBtn.className = `btn btn-skip ${skipCooldown > 0 ? 'penalized' : ''}`;
+            
+            const rBtn = document.getElementById('reroll');
+            rBtn.disabled = isGameOver;
+            
             render();
         }
 
         document.getElementById('boost').onclick = () => apply(Math.min(19000, GOAL - saved));
         document.getElementById('skip').onclick = () => {
             if (days > 0) { days--; skipCooldown = 2; persist(); update(); }
+        };
+        document.getElementById('reroll').onclick = () => {
+            if (saved < GOAL && days > 0) render();
         };
         document.getElementById('max_check').onchange = () => { persist(); render(); };
 
