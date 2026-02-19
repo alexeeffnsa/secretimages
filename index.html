@@ -18,75 +18,69 @@
         }
 
         body, html {
-            height: 100%;
-            margin: 0;
-            padding: 0;
+            height: 100%; margin: 0; padding: 0;
             background-color: var(--tg-bg);
             color: var(--tg-text);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             overflow: hidden;
         }
 
-        /* Центровка по вертикали */
         .wrapper {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 0 16px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            height: 100vh; width: 100%;
+            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
             box-sizing: border-box;
-            /* Учет "челки" и нижней полоски */
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
         }
 
         .card {
             background: var(--tg-card);
-            border-radius: 24px;
-            padding: 20px;
-            margin-bottom: 12px;
-            width: 100%;
-            box-sizing: border-box;
+            border-radius: 20px; padding: 16px;
+            margin-bottom: 10px; width: 100%; max-width: 400px;
+            box-sizing: border-box; flex-shrink: 0;
         }
 
-        .label { color: var(--tg-hint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        /* Клик на сумму для сброса */
-        .balance { 
-            font-size: 34px; font-weight: 800; margin: 4px 0; cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .balance:active { opacity: 0.5; }
+        .label { color: var(--tg-hint); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .balance { font-size: 28px; font-weight: 800; margin: 2px 0; cursor: pointer; }
 
-        .progress-track { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 15px 0; }
-        .progress-bar { height: 100%; width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s; }
+        .progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 10px 0; }
+        .progress-bar { height: 100%; width: 0%; transition: width 0.8s, background-color 0.4s; }
 
-        .status-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 12px 16px; border-radius: 18px; }
-        
-        .dots { display: flex; gap: 5px; margin-top: 5px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
+        .status-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 14px; }
+        .dots { display: flex; gap: 4px; margin-top: 4px; }
+        .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
         .dot-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: var(--success); transition: height 0.3s; }
 
-        .dice { font-size: 60px; text-align: center; margin: 10px 0; line-height: 1; }
+        .dice { font-size: 44px; text-align: center; margin: 2px 0; line-height: 1; }
+        
+        /* Исправленный инпут */
         .input-sum {
-            width: 100%; background: #000; border: 2px solid transparent; border-radius: 14px;
-            padding: 14px; color: #fff; font-size: 26px; font-weight: 700;
-            text-align: center; margin-bottom: 12px; outline: none;
+            width: 100%; 
+            max-width: 100%;
+            background: #000; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 12px;
+            padding: 14px; 
+            color: #fff; 
+            font-size: 24px; 
+            font-weight: 700;
+            text-align: center; 
+            margin-bottom: 10px; 
+            outline: none; 
+            box-sizing: border-box; /* Важно: паддинги не расширяют инпут */
+            -webkit-appearance: none;
         }
         .input-sum:focus { border-color: var(--tg-link); }
 
-        .btn { border: none; border-radius: 16px; padding: 18px; font-size: 17px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.1s; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn { border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; }
         .btn-main { background: var(--tg-link); color: #fff; }
         .btn-split { background: var(--warning); color: #fff; margin-bottom: 8px; }
         .btn-skip { background: rgba(255,255,255,0.1); color: var(--tg-link); }
-        .btn:disabled { opacity: 0.3; filter: grayscale(1); }
 
-        .history { max-height: 120px; overflow-y: auto; }
-        .hist-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); font-size: 15px; }
-        .c-green { color: var(--success); }
-        .c-red { color: var(--error); }
-        .c-orange { color: var(--warning); }
+        /* История */
+        .hidden { display: none !important; }
+        .hist-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); font-size: 13px; }
+        .c-green { color: var(--success); } .c-red { color: var(--error); } .c-orange { color: var(--warning); }
     </style>
 </head>
 <body>
@@ -99,11 +93,10 @@
         </div>
         <div class="balance" id="ui-saved" onclick="secretReset()">0 ₽</div>
         <div class="progress-track"><div class="progress-bar" id="ui-bar"></div></div>
-        
         <div class="status-row">
             <div>
                 <div class="label">Жизни</div>
-                <div style="font-size:24px; font-weight:800;">❤️ <span id="ui-lives">3</span></div>
+                <div style="font-size:18px; font-weight:800;">❤️ <span id="ui-lives">3</span></div>
             </div>
             <div style="text-align:right">
                 <div class="label" id="ui-frag-val">Защита 0.00</div>
@@ -114,9 +107,9 @@
 
     <div class="card" id="game-card"></div>
 
-    <div class="card">
-        <div class="label" style="margin-bottom:8px;">История (Топ-3)</div>
-        <div id="ui-hist" class="history"></div>
+    <div class="card" id="hist-card">
+        <div class="label" style="margin-bottom:6px;">История (Топ-3)</div>
+        <div id="ui-hist"></div>
     </div>
 </div>
 
@@ -127,28 +120,23 @@
     const GOAL = 1000000, DAYS = 400, FRAGS_PER_LIFE = 6;
     let s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
 
-    // Инициализация точек
     const dotsContainer = document.getElementById('ui-dots');
     dotsContainer.innerHTML = Array(6).fill('<div class="dot"><div class="dot-fill"></div></div>').join('');
 
     async function load() {
-        tg.CloudStorage.getItem('m_goal_v33', (err, val) => {
+        tg.CloudStorage.getItem('m_goal_v35', (err, val) => {
             if(!err && val) s = JSON.parse(val);
             render();
         });
     }
 
-    function save() {
-        tg.CloudStorage.setItem('m_goal_v33', JSON.stringify(s));
-    }
+    function save() { tg.CloudStorage.setItem('m_goal_v35', JSON.stringify(s)); }
 
     function secretReset() {
-        tg.showConfirm("Ты действительно хочешь ПОЛНОСТЬЮ СБРОСИТЬ весь прогресс?", (ok) => {
+        tg.showConfirm("Сбросить весь прогресс?", (ok) => {
             if(ok) {
                 s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
-                save();
-                render();
-                tg.HapticFeedback.notificationOccurred('warning');
+                save(); render();
             }
         });
     }
@@ -170,11 +158,15 @@
         bar.style.width = Math.min(pctA, 100) + '%';
         bar.style.backgroundColor = pctA > pctI + 0.1 ? 'var(--success)' : (pctA < pctI - 0.1 ? 'var(--error)' : 'var(--tg-link)');
 
-        const fills = document.querySelectorAll('.dot-fill');
-        fills.forEach((f, i) => {
+        document.querySelectorAll('.dot-fill').forEach((f, i) => {
             let v = rem - i;
             f.style.height = v >= 1 ? '100%' : (v > 0 ? (v * 100) + '%' : '0%');
         });
+
+        // ЛОГИКА СКРЫТИЯ ИСТОРИИ: если кубик брошен - истории нет
+        const histCard = document.getElementById('hist-card');
+        if (s.roll) histCard.classList.add('hidden');
+        else histCard.classList.remove('hidden');
 
         const gc = document.getElementById('game-card');
         if(!s.roll) {
@@ -194,10 +186,7 @@
 
         document.getElementById('ui-hist').innerHTML = s.history.slice(-3).reverse().map(h => {
             let cls = h.t === 's' ? 'c-red' : (h.split ? 'c-orange' : (h.v >= h.orig ? 'c-green' : 'c-red'));
-            return `<div class="hist-item">
-                <span style="color:var(--tg-hint)">День ${h.d}</span>
-                <span class="${cls}">${h.t === 's' ? 'Пропуск' : h.v.toLocaleString() + ' ₽'}</span>
-            </div>`;
+            return `<div class="hist-item"><span>День ${h.d}</span><span class="${cls}">${h.t === 's' ? 'Пропуск' : h.v.toLocaleString() + ' ₽'}</span></div>`;
         }).join('');
     }
 
@@ -223,9 +212,6 @@
 
     function done() {
         const val = parseInt(document.getElementById('sum-in').value) || 0;
-        if(val >= s.sug) tg.HapticFeedback.impactOccurred('heavy');
-        else tg.HapticFeedback.impactOccurred('medium');
-
         s.saved += val;
         s.totalFrags = Number((s.totalFrags + 0.1).toFixed(2));
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
@@ -235,7 +221,6 @@
 
     function skip() {
         if(s.totalFrags >= 1) {
-            tg.HapticFeedback.notificationOccurred('error');
             s.totalFrags = Number((s.totalFrags - 1).toFixed(2));
             s.history.push({d: s.day, v: 0, orig: s.sug, t: 's'});
             s.day++; s.roll = null;
