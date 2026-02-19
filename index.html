@@ -7,9 +7,9 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --tg-bg: var(--tg-theme-bg-color, #000000);
-            --tg-card: var(--tg-theme-secondary-bg-color, #1c1c1d);
-            --tg-text: var(--tg-theme-text-color, #ffffff);
+            --tg-bg: var(--tg-theme-bg-color, #f0f0f0);
+            --tg-card: var(--tg-theme-secondary-bg-color, #ffffff);
+            --tg-text: var(--tg-theme-text-color, #222222);
             --tg-hint: var(--tg-theme-hint-color, #8e8e93);
             --tg-link: var(--tg-theme-button-color, #007aff);
             --success: #34c759;
@@ -19,7 +19,8 @@
 
         body, html {
             height: 100%; margin: 0; padding: 0;
-            background-color: var(--tg-bg);
+            /* Переливающийся серо-белый градиент */
+            background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
             color: var(--tg-text);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             overflow: hidden;
@@ -35,14 +36,14 @@
 
         .card {
             background: var(--tg-card);
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
             border-radius: 20px; padding: 16px;
             margin-bottom: 10px; width: 100%; max-width: 400px;
             box-sizing: border-box; flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            /* Уменьшенная тень */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
-        /* Новая структура для раздельных плашек */
         .status-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -54,10 +55,11 @@
 
         .mini-card {
             background: var(--tg-card);
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
             border-radius: 18px;
             padding: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            /* Уменьшенная тень */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -66,24 +68,24 @@
         .label { color: var(--tg-hint); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .balance { font-size: 28px; font-weight: 800; margin: 2px 0; cursor: pointer; }
 
-        .progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 10px 0 4px; }
+        .progress-track { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin: 10px 0 4px; }
         .progress-track.mini { height: 3px; margin: 0 0 10px; opacity: 0.8; }
         .progress-bar { height: 100%; width: 0%; transition: width 0.8s, background-color 0.4s; }
         .progress-bar.stage { background-color: var(--tg-link); }
 
         .dots { display: flex; gap: 4px; margin-top: 6px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,0.08); position: relative; overflow: hidden; }
         .dot-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: var(--success); transition: height 0.3s; }
 
         .dice { font-size: 44px; text-align: center; margin: 2px 0; line-height: 1; }
         
         .input-sum {
             width: 100%; 
-            background: #000000 !important; 
-            border: 1px solid rgba(255,255,255,0.2); 
+            background: rgba(0,0,0,0.03) !important; 
+            border: 1px solid rgba(0,0,0,0.1); 
             border-radius: 12px;
             padding: 14px; 
-            color: #ffffff !important; 
+            color: var(--tg-text) !important; 
             font-size: 24px; 
             font-weight: 700;
             text-align: center; 
@@ -92,16 +94,16 @@
             box-sizing: border-box;
             -webkit-appearance: none;
         }
-        .input-sum:focus { border-color: var(--tg-link); }
+        .input-sum:focus { border-color: var(--tg-link); background: #ffffff !important; }
 
         .btn { border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; transition: opacity 0.2s; }
         .btn:active { opacity: 0.7; }
         .btn-main { background: var(--tg-link); color: #fff; }
         .btn-split { background: var(--warning); color: #fff; margin-bottom: 8px; }
-        .btn-skip { background: rgba(255,255,255,0.1); color: var(--tg-link); }
+        .btn-skip { background: rgba(0,0,0,0.05); color: var(--tg-link); }
 
         .hidden { display: none !important; }
-        .hist-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); font-size: 13px; }
+        .hist-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid rgba(0,0,0,0.05); font-size: 13px; }
         .c-green { color: var(--success); } .c-red { color: var(--error); } .c-orange { color: var(--warning); }
         
         .btn-more {
