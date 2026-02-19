@@ -53,21 +53,20 @@
 
         .dice { font-size: 44px; text-align: center; margin: 2px 0; line-height: 1; }
         
-        /* Исправленный инпут */
+        /* Черный инпут всегда */
         .input-sum {
             width: 100%; 
-            max-width: 100%;
-            background: #000; 
-            border: 1px solid rgba(255,255,255,0.1); 
+            background: #000000 !important; 
+            border: 1px solid rgba(255,255,255,0.2); 
             border-radius: 12px;
             padding: 14px; 
-            color: #fff; 
+            color: #ffffff !important; 
             font-size: 24px; 
             font-weight: 700;
             text-align: center; 
             margin-bottom: 10px; 
             outline: none; 
-            box-sizing: border-box; /* Важно: паддинги не расширяют инпут */
+            box-sizing: border-box;
             -webkit-appearance: none;
         }
         .input-sum:focus { border-color: var(--tg-link); }
@@ -77,7 +76,6 @@
         .btn-split { background: var(--warning); color: #fff; margin-bottom: 8px; }
         .btn-skip { background: rgba(255,255,255,0.1); color: var(--tg-link); }
 
-        /* История */
         .hidden { display: none !important; }
         .hist-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); font-size: 13px; }
         .c-green { color: var(--success); } .c-red { color: var(--error); } .c-orange { color: var(--warning); }
@@ -124,17 +122,18 @@
     dotsContainer.innerHTML = Array(6).fill('<div class="dot"><div class="dot-fill"></div></div>').join('');
 
     async function load() {
-        tg.CloudStorage.getItem('m_goal_v35', (err, val) => {
+        tg.CloudStorage.getItem('m_goal_v36', (err, val) => {
             if(!err && val) s = JSON.parse(val);
             render();
         });
     }
 
-    function save() { tg.CloudStorage.setItem('m_goal_v35', JSON.stringify(s)); }
+    function save() { tg.CloudStorage.setItem('m_goal_v36', JSON.stringify(s)); }
 
     function secretReset() {
         tg.showConfirm("Сбросить весь прогресс?", (ok) => {
             if(ok) {
+                tg.HapticFeedback.notificationOccurred('warning');
                 s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
                 save(); render();
             }
@@ -163,7 +162,6 @@
             f.style.height = v >= 1 ? '100%' : (v > 0 ? (v * 100) + '%' : '0%');
         });
 
-        // ЛОГИКА СКРЫТИЯ ИСТОРИИ: если кубик брошен - истории нет
         const histCard = document.getElementById('hist-card');
         if (s.roll) histCard.classList.add('hidden');
         else histCard.classList.remove('hidden');
@@ -212,6 +210,11 @@
 
     function done() {
         const val = parseInt(document.getElementById('sum-in').value) || 0;
+        
+        // Хаптики на внесение
+        if(val >= s.sug) tg.HapticFeedback.impactOccurred('heavy');
+        else tg.HapticFeedback.impactOccurred('medium');
+
         s.saved += val;
         s.totalFrags = Number((s.totalFrags + 0.1).toFixed(2));
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
@@ -221,6 +224,7 @@
 
     function skip() {
         if(s.totalFrags >= 1) {
+            tg.HapticFeedback.notificationOccurred('error');
             s.totalFrags = Number((s.totalFrags - 1).toFixed(2));
             s.history.push({d: s.day, v: 0, orig: s.sug, t: 's'});
             s.day++; s.roll = null;
