@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Million Goal</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
             --tg-bg: var(--tg-theme-bg-color, #f0f0f0);
@@ -19,7 +20,6 @@
 
         body, html {
             height: 100%; margin: 0; padding: 0;
-            /* Переливающийся серо-белый градиент */
             background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
             color: var(--tg-text);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -40,7 +40,6 @@
             border-radius: 20px; padding: 16px;
             margin-bottom: 10px; width: 100%; max-width: 400px;
             box-sizing: border-box; flex-shrink: 0;
-            /* Уменьшенная тень */
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
@@ -58,7 +57,6 @@
             border: 1px solid rgba(0,0,0,0.05);
             border-radius: 18px;
             padding: 12px;
-            /* Уменьшенная тень */
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
@@ -110,11 +108,24 @@
             background: none; border: none; color: var(--tg-link); width: 100%;
             padding: 10px 0 0; font-size: 13px; font-weight: 600; cursor: pointer;
         }
+
+        #win-splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--tg-bg); z-index: 1000; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 20px; box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
+<div id="win-splash" class="hidden" onclick="secretReset()">
+    <div style="font-size: 64px; margin-bottom: 20px;">🏆</div>
+    <h1 style="margin: 0;">МИЛЛИОН НАКОПЛЕН!</h1>
+    <p style="color: var(--tg-hint); margin-top: 10px;">Вы достигли цели. Нажмите, чтобы начать сначала.</p>
+</div>
+
+<div class="wrapper" id="main-ui">
     <div class="card">
         <div style="display:flex; justify-content:space-between;">
             <div class="label" id="ui-day">День 1 / 40</div>
@@ -159,22 +170,36 @@
     dotsContainer.innerHTML = Array(6).fill('<div class="dot"><div class="dot-fill"></div></div>').join('');
 
     async function load() {
-        tg.CloudStorage.getItem('m_goal_v40', (err, val) => {
+        tg.CloudStorage.getItem('m_goal_v41', (err, val) => {
             if(!err && val) s = JSON.parse(val);
+            checkWin();
             render();
         });
     }
 
-    function save() { tg.CloudStorage.setItem('m_goal_v40', JSON.stringify(s)); }
+    function save() { tg.CloudStorage.setItem('m_goal_v41', JSON.stringify(s)); }
 
     function secretReset() {
         tg.showConfirm("Сбросить весь прогресс?", (ok) => {
             if(ok) {
                 tg.HapticFeedback.notificationOccurred('warning');
                 s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
+                document.getElementById('win-splash').classList.add('hidden');
+                document.getElementById('main-ui').classList.remove('hidden');
                 save(); render();
             }
         });
+    }
+
+    function checkWin() {
+        if (s.saved >= GOAL) {
+            document.getElementById('win-splash').classList.remove('hidden');
+            document.getElementById('main-ui').classList.add('hidden');
+        }
+    }
+
+    function fireConfetti() {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#007aff', '#34c759', '#ff9500'] });
     }
 
     function loadMore() {
@@ -225,7 +250,7 @@
             gc.innerHTML = `
                 <div class="dice">${["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][s.roll]}</div>
                 <input type="number" class="input-sum" id="sum-in" value="${s.sug}" inputmode="numeric">
-                ${(s.sug > 2000 && !s.isSplit) ? `<button class="btn btn-split" onclick="split()">✂️ СПЛИТ (-0.5 фр.)</button>` : ''}
+                ${(s.sug >= 100) ? `<button class="btn btn-split" onclick="split()">✂️ СПЛИТ (-0.5 фр.)</button>` : ''}
                 <div style="display:flex; gap:10px">
                     <button class="btn btn-skip" id="skip-btn" onclick="skip()">ПРОПУСК</button>
                     <button class="btn btn-main" onclick="done()">ВНЕСТИ</button>
@@ -249,8 +274,10 @@
         tg.HapticFeedback.impactOccurred('light');
         s.roll = Math.floor(Math.random() * 6) + 1;
         const avg = (GOAL - s.saved) / (DAYS + 1 - s.day);
-        const m = {1:0.5, 2:0.7, 3:0.9, 4:1.1, 5:1.2, 6:1.4};
+        // Увеличен разброс для сумм до 3000
+        const m = {1:0.3, 2:0.6, 3:0.9, 4:1.2, 5:1.6, 6:2.2};
         s.sug = Math.min(Math.round((avg * m[s.roll])/50)*50, 3000);
+        if (s.sug < 50) s.sug = 50;
         s.isSplit = false;
         render();
     }
@@ -279,10 +306,12 @@
         if (newStage > oldStage) {
             s.totalFrags += 12.0; 
             tg.HapticFeedback.notificationOccurred('success');
+            fireConfetti();
         }
 
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
         s.day++; s.roll = null; histLimit = 7;
+        checkWin();
         save(); render();
     }
 
