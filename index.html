@@ -2,16 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Million Goal Telegram Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Million Goal</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --tg-bg: var(--tg-theme-bg-color, #f2f2f7);
-            --tg-card: var(--tg-theme-secondary-bg-color, #ffffff);
-            --tg-text: var(--tg-theme-text-color, #1c1c1e);
+            --tg-bg: var(--tg-theme-bg-color, #000000);
+            --tg-card: var(--tg-theme-secondary-bg-color, #1c1c1d);
+            --tg-text: var(--tg-theme-text-color, #ffffff);
             --tg-hint: var(--tg-theme-hint-color, #8e8e93);
-            --tg-link: var(--tg-theme-link-color, #007aff);
+            --tg-link: var(--tg-theme-button-color, #007aff);
             --success: #34c759;
             --warning: #ff9500;
             --error: #ff3b30;
@@ -21,174 +21,158 @@
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--tg-bg);
             color: var(--tg-text);
-            margin: 0; padding: 16px;
-            display: flex; flex-direction: column; align-items: center;
-            user-select: none;
+            margin: 0; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top));
+            user-select: none; -webkit-tap-highlight-color: transparent;
         }
-
-        .app { width: 100%; max-width: 400px; }
 
         .card {
             background: var(--tg-card);
             border-radius: 20px;
-            padding: 18px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 16px;
         }
 
         .label { color: var(--tg-hint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .balance { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 4px 0; }
+        .balance { font-size: 34px; font-weight: 800; margin: 4px 0; }
 
-        .progress-block { margin: 12px 0; }
-        .track { height: 8px; background: rgba(120, 120, 128, 0.2); border-radius: 4px; overflow: hidden; }
-        .bar-main { height: 100%; width: 0%; transition: width 0.8s ease, background-color 0.4s ease; }
+        .progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 15px 0; }
+        .progress-bar { height: 100%; transition: width 0.8s ease, background-color 0.4s ease; }
 
-        .status-container {
-            display: flex; align-items: center; justify-content: space-between;
-            background: rgba(120, 120, 128, 0.08); padding: 12px; border-radius: 16px; margin-top: 8px;
-        }
+        .status-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 12px 16px; border-radius: 16px; }
+        
+        .dots { display: flex; gap: 4px; margin-top: 4px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.1); position: relative; overflow: hidden; }
+        .dot-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: var(--success); transition: height 0.3s; }
 
-        .frags-row { display: flex; gap: 4px; margin-top: 4px; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(120, 120, 128, 0.2); position: relative; overflow: hidden; }
-        .dot-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; transition: height 0.3s ease; background: var(--success); }
-
-        .dice-area { font-size: 56px; text-align: center; margin: 8px 0; }
-        .input-box {
-            width: 100%; background: var(--tg-bg); border: 1px solid rgba(120, 120, 128, 0.2);
-            border-radius: 14px; padding: 12px; font-size: 24px; font-weight: 700;
-            text-align: center; color: var(--tg-text); outline: none;
+        .dice { font-size: 50px; text-align: center; margin: 10px 0; }
+        .input-sum {
+            width: 100%; background: #000; border: none; border-radius: 12px;
+            padding: 15px; color: #fff; font-size: 28px; font-weight: 700;
+            text-align: center; margin-bottom: 15px;
         }
 
         .btn { 
-            width: 100%; padding: 16px; border-radius: 14px; border: none; 
-            font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
+            border: none; border-radius: 14px; padding: 16px; font-size: 17px; 
+            font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%;
         }
         .btn-main { background: var(--tg-link); color: #fff; }
-        .btn-warning { background: var(--warning); color: #fff; margin-bottom: 8px; }
-        .btn-sub { background: rgba(120, 120, 128, 0.1); color: var(--tg-link); }
-        .btn:disabled { opacity: 0.4; }
+        .btn-split { background: var(--warning); color: #fff; margin-bottom: 10px; }
+        .btn-skip { background: rgba(255,255,255,0.1); color: var(--tg-link); }
 
-        .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(120, 120, 128, 0.1); }
-        .sum-actual { font-weight: 700; font-size: 15px; }
-        .c-more { color: var(--success); }
-        .c-less { color: var(--error); }
-        .c-split { color: var(--warning); }
+        .hist-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid rgba(255,255,255,0.1); }
+        .c-green { color: var(--success); }
+        .c-red { color: var(--error); }
+        .c-orange { color: var(--warning); }
     </style>
 </head>
 <body>
 
-<div class="app">
-    <div class="card">
-        <div style="display:flex; justify-content:space-between;">
-            <div class="label" id="ui-day">День 1 / 400</div>
-            <div class="label" id="ui-percent">0%</div>
+<div class="card">
+    <div style="display:flex; justify-content:space-between;">
+        <div class="label" id="ui-day">ДЕНЬ 1 / 400</div>
+        <div class="label" id="ui-pct">0%</div>
+    </div>
+    <div class="balance" id="ui-saved">0 ₽</div>
+    <div class="progress-track"><div class="progress-bar" id="ui-bar"></div></div>
+    
+    <div class="status-row">
+        <div>
+            <div class="label">Жизни</div>
+            <div style="font-size:22px; font-weight:800;">❤️ <span id="ui-lives">3</span></div>
         </div>
-        <div class="balance" id="ui-saved">0 ₽</div>
-        
-        <div class="progress-block">
-            <div class="track"><div class="bar-main" id="ui-bar-main"></div></div>
-        </div>
-
-        <div class="status-container">
-            <div>
-                <div class="label">Жизни</div>
-                <div style="font-size: 20px; font-weight: 800;">❤️ <span id="ui-lives">3</span></div>
-            </div>
-            <div style="text-align: right;">
-                <div class="label" id="ui-frags-label">Защита 0.0</div>
-                <div class="frags-row" id="ui-frags-dots">
-                    <div class="dot"><div class="dot-fill"></div></div>
-                    <div class="dot"><div class="dot-fill"></div></div>
-                    <div class="dot"><div class="dot-fill"></div></div>
-                    <div class="dot"><div class="dot-fill"></div></div>
-                    <div class="dot"><div class="dot-fill"></div></div>
-                    <div class="dot"><div class="dot-fill"></div></div>
-                </div>
-            </div>
+        <div style="text-align:right">
+            <div class="label" id="ui-frag-val">ЗАЩИТА 0.00</div>
+            <div class="dots" id="ui-dots"></div>
         </div>
     </div>
+</div>
 
-    <div class="card">
-        <div id="step-roll">
-            <button class="btn btn-main" onclick="roll()">🎲 Бросить кубик</button>
-        </div>
-        <div id="step-action" style="display:none;">
-            <div class="dice-area" id="ui-dice">⚀</div>
-            <input type="number" class="input-box" id="ui-input" inputmode="numeric">
-            <div style="margin-top: 12px;">
-                <button id="split-btn" class="btn btn-warning" onclick="applySplit()" style="display:none;">✂️ Сплит (-0.5 фр.)</button>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-sub" id="btn-skip" onclick="skip()">Пропуск</button>
-                    <button class="btn btn-main" onclick="deposit()">Внести</button>
-                </div>
-            </div>
-        </div>
+<div class="card" id="game-card">
     </div>
 
-    <div class="card">
-        <div class="label" style="margin-bottom:8px;">История</div>
-        <div id="ui-history"></div>
-    </div>
+<div class="card">
+    <div class="label" style="margin-bottom:10px;">История</div>
+    <div id="ui-hist"></div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.ready();
 
-    const GOAL = 1000000, DAYS = 400, FRAGS_PER_LIFE = 6;
-    let s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplitMode: false, history: [] };
+    const GOAL = 1000000;
+    const DAYS = 400;
+    const FRAGS_PER_LIFE = 6;
 
-    async function loadData() {
-        // Пытаемся загрузить из облака Telegram
-        tg.CloudStorage.getItem('game_state_v32', (err, value) => {
-            if (!err && value) {
-                s = JSON.parse(value);
-                render();
-            }
+    let s = {
+        day: 1, saved: 0, totalFrags: 18.0,
+        roll: null, sug: 0, isSplit: false,
+        history: []
+    };
+
+    // Создаем точки защиты один раз
+    const dotsContainer = document.getElementById('ui-dots');
+    for(let i=0; i<6; i++) {
+        dotsContainer.innerHTML += `<div class="dot"><div class="dot-fill"></div></div>`;
+    }
+
+    async function load() {
+        tg.CloudStorage.getItem('m_goal_v4', (err, val) => {
+            if(!err && val) s = JSON.parse(val);
+            render();
         });
     }
 
-    function saveData() {
-        tg.CloudStorage.setItem('game_state_v32', JSON.stringify(s));
+    function save() {
+        tg.CloudStorage.setItem('m_goal_v4', JSON.stringify(s));
     }
 
     function render() {
-        const curLives = Math.floor(s.totalFrags / FRAGS_PER_LIFE);
-        const fragRem = (s.totalFrags % FRAGS_PER_LIFE).toFixed(2);
-        document.getElementById('ui-lives').innerText = curLives;
-        document.getElementById('ui-frags-label').innerText = `Защита ${fragRem}`;
-
+        const lives = Math.floor(s.totalFrags / FRAGS_PER_LIFE);
+        const rem = (s.totalFrags % FRAGS_PER_LIFE);
+        
+        document.getElementById('ui-day').innerText = `ДЕНЬ ${s.day} / ${DAYS}`;
+        document.getElementById('ui-saved').innerText = s.saved.toLocaleString() + ' ₽';
+        document.getElementById('ui-lives').innerText = lives;
+        document.getElementById('ui-frag-val').innerText = `ЗАЩИТА ${rem.toFixed(2)}`;
+        
         const pctA = (s.saved / GOAL) * 100;
         const pctI = (s.day / DAYS) * 100;
+        document.getElementById('ui-pct').innerText = Math.floor(pctA) + '%';
         
-        const bar = document.getElementById('ui-bar-main');
+        const bar = document.getElementById('ui-bar');
         bar.style.width = Math.min(pctA, 100) + '%';
         bar.style.backgroundColor = pctA > pctI + 0.1 ? 'var(--success)' : (pctA < pctI - 0.1 ? 'var(--error)' : 'var(--tg-link)');
 
-        document.getElementById('ui-percent').innerText = Math.floor(pctA) + '%';
-        document.getElementById('ui-day').innerText = `День ${s.day} / ${DAYS}`;
-        document.getElementById('ui-saved').innerText = s.saved.toLocaleString() + ' ₽';
-
-        const dots = document.querySelectorAll('.dot-fill');
-        dots.forEach((fill, i) => {
-            let val = (s.totalFrags % FRAGS_PER_LIFE) - i;
-            fill.style.height = val >= 1 ? '100%' : (val > 0 ? (val * 100) + '%' : '0%');
+        // Точки
+        const fills = document.querySelectorAll('.dot-fill');
+        fills.forEach((f, i) => {
+            let val = rem - i;
+            f.style.height = val >= 1 ? '100%' : (val > 0 ? (val * 100) + '%' : '0%');
         });
 
-        document.getElementById('btn-skip').disabled = s.totalFrags < 1;
-        document.getElementById('step-roll').style.display = s.roll ? 'none' : 'block';
-        document.getElementById('step-action').style.display = s.roll ? 'block' : 'none';
-        document.getElementById('split-btn').style.display = (s.roll && s.sug > 2000 && !s.isSplitMode) ? 'block' : 'none';
-        
-        if(s.roll) document.getElementById('ui-dice').innerText = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][s.roll];
+        // Контент игры
+        const gc = document.getElementById('game-card');
+        if(!s.roll) {
+            gc.innerHTML = `<button class="btn btn-main" onclick="roll()">🎲 Бросить кубик</button>`;
+        } else {
+            gc.innerHTML = `
+                <div class="dice">${["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][s.roll]}</div>
+                <input type="number" class="input-sum" id="sum-in" value="${s.sug}">
+                ${(s.sug > 2000 && !s.isSplit) ? `<button class="btn btn-split" onclick="split()">✂️ Сплит (-0.5 фр.)</button>` : ''}
+                <div style="display:flex; gap:10px">
+                    <button class="btn btn-skip" id="skip-btn" onclick="skip()">Пропуск</button>
+                    <button class="btn btn-main" onclick="done()">Внести</button>
+                </div>
+            `;
+            document.getElementById('skip-btn').disabled = s.totalFrags < 1;
+        }
 
-        document.getElementById('ui-history').innerHTML = s.history.slice(-5).reverse().map(h => {
-            let colorClass = h.t === 's' ? 'c-less' : (h.split ? 'c-split' : (h.v >= h.orig ? 'c-more' : 'c-less'));
-            return `
-            <div class="hist-item">
-                <div style="font-size:11px; color:var(--tg-hint)">День ${h.d}</div>
-                <div class="sum-actual ${colorClass}">${h.t === 's' ? 'Пропуск' : h.v.toLocaleString() + ' ₽'}</div>
+        // История
+        document.getElementById('ui-hist').innerHTML = s.history.slice(-5).reverse().map(h => {
+            let cls = h.t === 's' ? 'c-red' : (h.split ? 'c-orange' : (h.v >= h.orig ? 'c-green' : 'c-red'));
+            return `<div class="hist-item">
+                <span style="color:var(--tg-hint)">День ${h.d}</span>
+                <span class="${cls}">${h.t === 's' ? 'Пропуск' : h.v.toLocaleString() + ' ₽'}</span>
             </div>`;
         }).join('');
     }
@@ -199,49 +183,44 @@
         const avg = (GOAL - s.saved) / (DAYS + 1 - s.day);
         const m = {1:0.5, 2:0.7, 3:0.9, 4:1.1, 5:1.2, 6:1.4};
         s.sug = Math.round((avg * m[s.roll])/50)*50;
-        s.isSplitMode = false;
-        document.getElementById('ui-input').value = s.sug;
+        s.isSplit = false;
         render();
     }
 
-    function applySplit() {
-        if (s.totalFrags >= 0.5) {
+    function split() {
+        if(s.totalFrags >= 0.5) {
             tg.HapticFeedback.notificationOccurred('warning');
-            s.isSplitMode = true;
-            s.totalFrags = Number((s.totalFrags - 0.5).toFixed(2));
+            s.totalFrags -= 0.5;
             s.sug = Math.floor(s.sug / 2);
-            document.getElementById('ui-input').value = s.sug;
+            s.isSplit = true;
             render();
         }
     }
 
-    function deposit() {
-        const val = parseInt(document.getElementById('ui-input').value) || 0;
-        
-        // Хаптик зависит от суммы
-        if (val >= s.sug) tg.HapticFeedback.impactOccurred('heavy');
+    function done() {
+        const val = parseInt(document.getElementById('sum-in').value) || 0;
+        // Хаптик по силе суммы
+        if(val > s.sug) tg.HapticFeedback.impactOccurred('heavy');
         else tg.HapticFeedback.impactOccurred('medium');
 
         s.saved += val;
         s.totalFrags = Number((s.totalFrags + 0.1).toFixed(2));
-        s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplitMode});
+        s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
         s.day++; s.roll = null;
-        saveData();
-        render();
+        save(); render();
     }
 
     function skip() {
-        tg.HapticFeedback.notificationOccurred('error');
-        if (s.totalFrags >= 1) {
-            s.totalFrags = Number((s.totalFrags - 1).toFixed(2));
-            s.history.push({d: s.day, v: 0, orig: s.sug, t: 's', split: false});
+        if(s.totalFrags >= 1) {
+            tg.HapticFeedback.notificationOccurred('error');
+            s.totalFrags -= 1;
+            s.history.push({d: s.day, v: 0, orig: s.sug, t: 's'});
             s.day++; s.roll = null;
-            saveData();
-            render();
+            save(); render();
         }
     }
 
-    loadData();
+    load();
 </script>
 </body>
 </html>
