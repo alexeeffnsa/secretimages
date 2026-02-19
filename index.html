@@ -212,7 +212,6 @@
     function render() {
         const lives = Math.floor(s.totalFrags / FRAGS_PER_LIFE);
         const rem = (s.totalFrags % FRAGS_PER_LIFE);
-        
         const currentStage = Math.floor(s.saved / STAGE_GOAL);
         const stageSaved = s.saved % STAGE_GOAL;
         
@@ -222,19 +221,18 @@
 
         document.getElementById('ui-saved').innerText = s.saved.toLocaleString() + ' ₽';
         document.getElementById('ui-lives').innerText = lives;
-        document.getElementById('ui-stage-text').innerText = `${currentStage + 1} / 10`;
+        // Clamp этапа чтобы не было 11/10
+        document.getElementById('ui-stage-text').innerText = `${Math.min(currentStage + 1, 10)} / 10`;
         document.getElementById('ui-frag-val').innerText = `Защита ${rem.toFixed(2)}`;
         document.getElementById('ui-pct').innerText = `${Math.floor(stageSaved/1000)}к / 100к`;
         
         const totalPct = (s.saved / GOAL) * 100;
         const stagePct = (stageSaved / STAGE_GOAL) * 100;
-        
         const bar = document.getElementById('ui-bar');
         bar.style.width = Math.min(totalPct, 100) + '%';
         
         const idealPct = (s.day / DAYS) * 100;
         bar.style.backgroundColor = totalPct > idealPct + 0.1 ? 'var(--success)' : (totalPct < idealPct - 0.1 ? 'var(--error)' : 'var(--tg-link)');
-
         document.getElementById('ui-bar-stage').style.width = Math.min(stagePct, 100) + '%';
 
         document.querySelectorAll('.dot-fill').forEach((f, i) => {
@@ -242,18 +240,16 @@
             f.style.height = v >= 1 ? '100%' : (v > 0 ? (v * 100) + '%' : '0%');
         });
 
-        const histCard = document.getElementById('hist-card');
-        if (s.roll) histCard.classList.add('hidden');
-        else histCard.classList.remove('hidden');
-
         const gc = document.getElementById('game-card');
         if(!s.roll) {
+            document.getElementById('hist-card').classList.remove('hidden');
             gc.innerHTML = `<button class="btn btn-main" onclick="roll()">🎲 БРОСИТЬ КУБИК</button>`;
         } else {
+            document.getElementById('hist-card').classList.add('hidden');
             gc.innerHTML = `
                 <div class="dice">${["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][s.roll]}</div>
                 <input type="number" class="input-sum" id="sum-in" value="${s.sug}" inputmode="numeric">
-                ${(s.sug >= 100) ? `<button class="btn btn-split" onclick="split()">✂️ СПЛИТ (-0.5 фр.)</button>` : ''}
+                ${(s.sug > 2500) ? `<button class="btn btn-split" onclick="split()">✂️ СПЛИТ (-0.5 фр.)</button>` : ''}
                 <div style="display:flex; gap:10px">
                     <button class="btn btn-skip" id="skip-btn" onclick="skip()">ПРОПУСК</button>
                     <button class="btn btn-main" onclick="done()">ВНЕСТИ</button>
@@ -276,34 +272,34 @@
     function roll() {
         tg.HapticFeedback.impactOccurred('light');
         s.roll = Math.floor(Math.random() * 6) + 1;
-        
         const stageSaved = s.saved % STAGE_GOAL;
         const stageLeft = STAGE_GOAL - stageSaved;
         const daysInStageLeft = Math.max(1, STAGE_DAYS - s.stageDayCounter + 1);
-        
         const avg = stageLeft / daysInStageLeft;
-        const m = {1:0.4, 2:0.7, 3:1.0, 4:1.3, 5:1.7, 6:2.5};
-        
-        // Разрешаем повышать до 4000 если нужно догонять план
+        // Мягкие множители: среднее ~1.05
+        const m = {1:0.5, 2:0.8, 3:1.0, 4:1.1, 5:1.3, 6:1.6};
         s.sug = Math.min(Math.round((avg * m[s.roll])/50)*50, 4000);
         if (s.sug < 100) s.sug = 100;
-        
         s.isSplit = false;
         render();
     }
 
     function split() {
         if(s.totalFrags >= 0.5) {
+            const input = document.getElementById('sum-in');
             tg.HapticFeedback.notificationOccurred('warning');
             s.totalFrags = Number((s.totalFrags - 0.5).toFixed(2));
-            s.sug = Math.floor(s.sug / 2);
+            // Сплитуем само значение в инпуте, а не только рекомендацию
+            let currentVal = parseInt(input.value) || s.sug;
+            s.sug = Math.floor(currentVal / 2);
+            input.value = s.sug;
             s.isSplit = true;
             render();
         }
     }
 
     function done() {
-        const val = parseInt(document.getElementById('sum-in').value) || 0;
+        const val = Math.max(0, parseInt(document.getElementById('sum-in').value) || 0);
         const oldStage = Math.floor(s.saved / STAGE_GOAL);
         
         if(val >= s.sug) tg.HapticFeedback.impactOccurred('heavy');
@@ -314,12 +310,13 @@
         
         const newStage = Math.floor(s.saved / STAGE_GOAL);
         if (newStage > oldStage) {
-            s.totalFrags += 12.0; 
+            // Награда за каждый пройденный этап
+            s.totalFrags += 12.0 * (newStage - oldStage); 
             tg.HapticFeedback.notificationOccurred('success');
             fireConfetti();
-            s.stageDayCounter = 1; // Сброс только при переходе на новый этап
+            s.stageDayCounter = 1; 
         } else {
-            s.stageDayCounter++; // Просто следующий день в текущем этапе
+            s.stageDayCounter++;
         }
 
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
@@ -333,8 +330,7 @@
             tg.HapticFeedback.notificationOccurred('error');
             s.totalFrags = Number((s.totalFrags - 1).toFixed(2));
             s.history.push({d: s.day, v: 0, orig: s.sug, t: 's'});
-            s.day++; 
-            s.stageDayCounter++;
+            s.day++; s.stageDayCounter++;
             s.roll = null; histLimit = 7;
             save(); render();
         }
