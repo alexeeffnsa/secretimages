@@ -44,8 +44,10 @@
         .label { color: var(--tg-hint); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .balance { font-size: 28px; font-weight: 800; margin: 2px 0; cursor: pointer; }
 
-        .progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 10px 0; }
+        .progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 10px 0 4px; }
+        .progress-track.mini { height: 3px; margin: 0 0 10px; opacity: 0.8; }
         .progress-bar { height: 100%; width: 0%; transition: width 0.8s, background-color 0.4s; }
+        .progress-bar.stage { background-color: var(--tg-link); }
 
         .status-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 14px; }
         .dots { display: flex; gap: 4px; margin-top: 4px; }
@@ -92,14 +94,16 @@
 <div class="wrapper">
     <div class="card">
         <div style="display:flex; justify-content:space-between;">
-            <div class="label" id="ui-day">День 1 / 400</div>
-            <div class="label" id="ui-pct">0%</div>
+            <div class="label" id="ui-day">День 1 / 40</div>
+            <div class="label" id="ui-pct">0/100к</div>
         </div>
         <div class="balance" id="ui-saved" onclick="secretReset()">0 ₽</div>
         <div class="progress-track"><div class="progress-bar" id="ui-bar"></div></div>
+        <div class="progress-track mini"><div class="progress-bar stage" id="ui-bar-stage"></div></div>
+        
         <div class="status-row">
             <div>
-                <div class="label">Жизни</div>
+                <div class="label" id="ui-lives-label">Жизни</div>
                 <div style="font-size:18px; font-weight:800;">❤️ <span id="ui-lives">3</span></div>
             </div>
             <div style="text-align:right">
@@ -122,7 +126,7 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const GOAL = 1000000, DAYS = 400, FRAGS_PER_LIFE = 6;
+    const GOAL = 1000000, STAGE_GOAL = 100000, DAYS = 400, STAGE_DAYS = 40, FRAGS_PER_LIFE = 6;
     let s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
     let histLimit = 7;
 
@@ -130,13 +134,13 @@
     dotsContainer.innerHTML = Array(6).fill('<div class="dot"><div class="dot-fill"></div></div>').join('');
 
     async function load() {
-        tg.CloudStorage.getItem('m_goal_v38', (err, val) => {
+        tg.CloudStorage.getItem('m_goal_v39', (err, val) => {
             if(!err && val) s = JSON.parse(val);
             render();
         });
     }
 
-    function save() { tg.CloudStorage.setItem('m_goal_v38', JSON.stringify(s)); }
+    function save() { tg.CloudStorage.setItem('m_goal_v39', JSON.stringify(s)); }
 
     function secretReset() {
         tg.showConfirm("Сбросить весь прогресс?", (ok) => {
@@ -158,18 +162,30 @@
         const lives = Math.floor(s.totalFrags / FRAGS_PER_LIFE);
         const rem = (s.totalFrags % FRAGS_PER_LIFE);
         
-        document.getElementById('ui-day').innerText = `ДЕНЬ ${s.day} / ${DAYS}`;
+        // Расчет прогресса этапа
+        const currentStage = Math.floor(s.saved / STAGE_GOAL);
+        const stageSaved = s.saved % STAGE_GOAL;
+        const stageDay = ((s.day - 1) % STAGE_DAYS) + 1;
+        
+        document.getElementById('ui-day').innerText = `День ${stageDay} / 40 (Этап ${currentStage + 1})`;
         document.getElementById('ui-saved').innerText = s.saved.toLocaleString() + ' ₽';
         document.getElementById('ui-lives').innerText = lives;
-        document.getElementById('ui-frag-val').innerText = `ЗАЩИТА ${rem.toFixed(2)}`;
+        document.getElementById('ui-frag-val').innerText = `Защита ${rem.toFixed(2)}`;
+        document.getElementById('ui-pct').innerText = `${Math.floor(stageSaved/1000)}к / 100к`;
         
-        const pctA = (s.saved / GOAL) * 100;
-        const pctI = (s.day / DAYS) * 100;
-        document.getElementById('ui-pct').innerText = Math.floor(pctA) + '%';
+        const totalPct = (s.saved / GOAL) * 100;
+        const stagePct = (stageSaved / STAGE_GOAL) * 100;
         
+        // Главный бар (общий миллион)
         const bar = document.getElementById('ui-bar');
-        bar.style.width = Math.min(pctA, 100) + '%';
-        bar.style.backgroundColor = pctA > pctI + 0.1 ? 'var(--success)' : (pctA < pctI - 0.1 ? 'var(--error)' : 'var(--tg-link)');
+        bar.style.width = Math.min(totalPct, 100) + '%';
+        
+        // Цвет главного бара в зависимости от графика (общий день/400)
+        const idealPct = (s.day / DAYS) * 100;
+        bar.style.backgroundColor = totalPct > idealPct + 0.1 ? 'var(--success)' : (totalPct < idealPct - 0.1 ? 'var(--error)' : 'var(--tg-link)');
+
+        // Бар этапа (100к)
+        document.getElementById('ui-bar-stage').style.width = Math.min(stagePct, 100) + '%';
 
         document.querySelectorAll('.dot-fill').forEach((f, i) => {
             let v = rem - i;
@@ -212,7 +228,8 @@
         s.roll = Math.floor(Math.random() * 6) + 1;
         const avg = (GOAL - s.saved) / (DAYS + 1 - s.day);
         const m = {1:0.5, 2:0.7, 3:0.9, 4:1.1, 5:1.2, 6:1.4};
-        s.sug = Math.round((avg * m[s.roll])/50)*50;
+        // Лимит кубика в 3000
+        s.sug = Math.min(Math.round((avg * m[s.roll])/50)*50, 3000);
         s.isSplit = false;
         render();
     }
@@ -229,10 +246,21 @@
 
     function done() {
         const val = parseInt(document.getElementById('sum-in').value) || 0;
+        const oldStage = Math.floor(s.saved / STAGE_GOAL);
+        
         if(val >= s.sug) tg.HapticFeedback.impactOccurred('heavy');
         else tg.HapticFeedback.impactOccurred('medium');
+
         s.saved += val;
         s.totalFrags = Number((s.totalFrags + 0.1).toFixed(2));
+        
+        // Проверка на закрытие этапа (каждые 100 000 добавляют 2 жизни/12 фрагментов)
+        const newStage = Math.floor(s.saved / STAGE_GOAL);
+        if (newStage > oldStage) {
+            s.totalFrags += 12.0; 
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
         s.day++; s.roll = null; histLimit = 7;
         save(); render();
