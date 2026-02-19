@@ -163,7 +163,7 @@
     tg.expand();
 
     const GOAL = 1000000, STAGE_GOAL = 100000, DAYS = 400, STAGE_DAYS = 40, FRAGS_PER_LIFE = 6;
-    let s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
+    let s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [], stageDayCounter: 1 };
     let histLimit = 7;
 
     const dotsContainer = document.getElementById('ui-dots');
@@ -172,6 +172,7 @@
     async function load() {
         tg.CloudStorage.getItem('m_goal_v41', (err, val) => {
             if(!err && val) s = JSON.parse(val);
+            if(!s.stageDayCounter) s.stageDayCounter = ((s.day - 1) % STAGE_DAYS) + 1;
             checkWin();
             render();
         });
@@ -183,7 +184,7 @@
         tg.showConfirm("Сбросить весь прогресс?", (ok) => {
             if(ok) {
                 tg.HapticFeedback.notificationOccurred('warning');
-                s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
+                s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [], stageDayCounter: 1 };
                 document.getElementById('win-splash').classList.add('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
                 save(); render();
@@ -214,9 +215,11 @@
         
         const currentStage = Math.floor(s.saved / STAGE_GOAL);
         const stageSaved = s.saved % STAGE_GOAL;
-        const stageDay = ((s.day - 1) % STAGE_DAYS) + 1;
         
-        document.getElementById('ui-day').innerText = `День ${stageDay} / 40`;
+        const dayLabel = document.getElementById('ui-day');
+        dayLabel.innerText = `День ${s.stageDayCounter} / 40`;
+        dayLabel.style.color = s.stageDayCounter > 40 ? 'var(--error)' : 'var(--tg-hint)';
+
         document.getElementById('ui-saved').innerText = s.saved.toLocaleString() + ' ₽';
         document.getElementById('ui-lives').innerText = lives;
         document.getElementById('ui-stage-text').innerText = `${currentStage + 1} / 10`;
@@ -273,11 +276,18 @@
     function roll() {
         tg.HapticFeedback.impactOccurred('light');
         s.roll = Math.floor(Math.random() * 6) + 1;
-        const avg = (GOAL - s.saved) / (DAYS + 1 - s.day);
-        // Увеличен разброс для сумм до 3000
-        const m = {1:0.3, 2:0.6, 3:0.9, 4:1.2, 5:1.6, 6:2.2};
-        s.sug = Math.min(Math.round((avg * m[s.roll])/50)*50, 3000);
-        if (s.sug < 50) s.sug = 50;
+        
+        const stageSaved = s.saved % STAGE_GOAL;
+        const stageLeft = STAGE_GOAL - stageSaved;
+        const daysInStageLeft = Math.max(1, STAGE_DAYS - s.stageDayCounter + 1);
+        
+        const avg = stageLeft / daysInStageLeft;
+        const m = {1:0.4, 2:0.7, 3:1.0, 4:1.3, 5:1.7, 6:2.5};
+        
+        // Разрешаем повышать до 4000 если нужно догонять план
+        s.sug = Math.min(Math.round((avg * m[s.roll])/50)*50, 4000);
+        if (s.sug < 100) s.sug = 100;
+        
         s.isSplit = false;
         render();
     }
@@ -307,6 +317,9 @@
             s.totalFrags += 12.0; 
             tg.HapticFeedback.notificationOccurred('success');
             fireConfetti();
+            s.stageDayCounter = 1; // Сброс только при переходе на новый этап
+        } else {
+            s.stageDayCounter++; // Просто следующий день в текущем этапе
         }
 
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
@@ -320,7 +333,9 @@
             tg.HapticFeedback.notificationOccurred('error');
             s.totalFrags = Number((s.totalFrags - 1).toFixed(2));
             s.history.push({d: s.day, v: 0, orig: s.sug, t: 's'});
-            s.day++; s.roll = null; histLimit = 7;
+            s.day++; 
+            s.stageDayCounter++;
+            s.roll = null; histLimit = 7;
             save(); render();
         }
     }
