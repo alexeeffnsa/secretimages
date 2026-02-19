@@ -3,82 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Million Goal</title>
+    <title>Million Goal Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --tg-bg: var(--tg-theme-bg-color, #000000);
-            --tg-card: var(--tg-theme-secondary-bg-color, #1c1c1d);
+            --tg-card: var(--tg-theme-secondary-bg-color, #1c1c1e);
             --tg-text: var(--tg-theme-text-color, #ffffff);
             --tg-hint: var(--tg-theme-hint-color, #8e8e93);
             --tg-link: var(--tg-theme-button-color, #007aff);
-            --success: #34c759;
-            --warning: #ff9500;
-            --error: #ff3b30;
+            --success: #32d74b;
+            --warning: #ff9f0a;
+            --error: #ff453a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
         }
 
         body, html {
             height: 100%; margin: 0; padding: 0;
             background-color: var(--tg-bg);
             color: var(--tg-text);
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
         }
 
         .wrapper {
             display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            height: 100vh; width: 100%;
-            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+            align-items: center; min-height: 100vh; width: 100%;
+            padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
             box-sizing: border-box;
+            gap: 12px;
         }
 
         .card {
             background: var(--tg-card);
-            border-radius: 20px; padding: 16px;
-            margin-bottom: 10px; width: 100%; max-width: 400px;
-            box-sizing: border-box; flex-shrink: 0;
-        }
-
-        .label { color: var(--tg-hint); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .balance { font-size: 28px; font-weight: 800; margin: 2px 0; cursor: pointer; }
-
-        .progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin: 10px 0; }
-        .progress-bar { height: 100%; width: 0%; transition: width 0.8s, background-color 0.4s; }
-
-        .status-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 14px; }
-        .dots { display: flex; gap: 4px; margin-top: 4px; }
-        .dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
-        .dot-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: var(--success); transition: height 0.3s; }
-
-        .dice { font-size: 44px; text-align: center; margin: 2px 0; line-height: 1; }
-        
-        /* Черный инпут всегда */
-        .input-sum {
-            width: 100%; 
-            background: #000000 !important; 
-            border: 1px solid rgba(255,255,255,0.2); 
-            border-radius: 12px;
-            padding: 14px; 
-            color: #ffffff !important; 
-            font-size: 24px; 
-            font-weight: 700;
-            text-align: center; 
-            margin-bottom: 10px; 
-            outline: none; 
+            border: 1px solid var(--border);
+            border-radius: 24px; padding: 20px;
+            width: 100%; max-width: 400px;
             box-sizing: border-box;
-            -webkit-appearance: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
-        .input-sum:focus { border-color: var(--tg-link); }
 
-        .btn { border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; }
-        .btn-main { background: var(--tg-link); color: #fff; }
-        .btn-split { background: var(--warning); color: #fff; margin-bottom: 8px; }
-        .btn-skip { background: rgba(255,255,255,0.1); color: var(--tg-link); }
+        .label { color: var(--tg-hint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+        .balance { font-size: 36px; font-weight: 800; letter-spacing: -1px; margin: 6px 0; cursor: pointer; }
+
+        /* Прогресс-бар */
+        .progress-track { height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; margin: 16px 0; border: 1px solid var(--border); }
+        .progress-bar { 
+            height: 100%; width: 0%; 
+            transition: width 1s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.5s;
+            box-shadow: 0 0 15px rgba(0, 122, 255, 0.3);
+        }
+
+        .status-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: var(--glass); padding: 14px; border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .dots { display: flex; gap: 5px; margin-top: 6px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.1); position: relative; overflow: hidden; border: 1px solid var(--border); }
+        .dot-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: var(--success); transition: height 0.4s; }
+
+        .dice { font-size: 54px; text-align: center; margin: 10px 0; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        
+        .input-sum {
+            width: 100%; background: #000000 !important; 
+            border: 1px solid var(--tg-link); border-radius: 16px;
+            padding: 16px; color: #ffffff !important; font-size: 28px; font-weight: 800;
+            text-align: center; margin-bottom: 12px; outline: none; box-sizing: border-box;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .btn { 
+            border: none; border-radius: 18px; padding: 18px; font-size: 17px; 
+            font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn:active { transform: scale(0.96); opacity: 0.8; }
+        .btn-main { background: var(--tg-link); color: #fff; box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3); }
+        .btn-split { background: var(--warning); color: #fff; margin-bottom: 10px; }
+        .btn-skip { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid var(--border); }
+        .btn:disabled { opacity: 0.2; }
+
+        /* История */
+        .hist-item { 
+            display: flex; justify-content: space-between; padding: 12px 4px; 
+            border-bottom: 1px solid var(--border); font-size: 14px; 
+        }
+        .hist-item:last-child { border: none; }
+        .c-green { color: var(--success); font-weight: 600; } 
+        .c-red { color: var(--error); font-weight: 600; } 
+        .c-orange { color: var(--warning); font-weight: 600; }
+        
+        .btn-more {
+            margin-top: 12px; background: none; border: none; color: var(--tg-link);
+            font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; text-align: center;
+        }
 
         .hidden { display: none !important; }
-        .hist-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); font-size: 13px; }
-        .c-green { color: var(--success); } .c-red { color: var(--error); } .c-orange { color: var(--warning); }
     </style>
 </head>
 <body>
@@ -86,7 +109,7 @@
 <div class="wrapper">
     <div class="card">
         <div style="display:flex; justify-content:space-between;">
-            <div class="label" id="ui-day">День 1 / 400</div>
+            <div class="label" id="ui-day">ДЕНЬ 1 / 400</div>
             <div class="label" id="ui-pct">0%</div>
         </div>
         <div class="balance" id="ui-saved" onclick="secretReset()">0 ₽</div>
@@ -94,10 +117,10 @@
         <div class="status-row">
             <div>
                 <div class="label">Жизни</div>
-                <div style="font-size:18px; font-weight:800;">❤️ <span id="ui-lives">3</span></div>
+                <div style="font-size:22px; font-weight:800; display:flex; align-items:center; gap:5px;">❤️ <span id="ui-lives">3</span></div>
             </div>
             <div style="text-align:right">
-                <div class="label" id="ui-frag-val">Защита 0.00</div>
+                <div class="label" id="ui-frag-val">ЗАЩИТА 0.00</div>
                 <div class="dots" id="ui-dots"></div>
             </div>
         </div>
@@ -106,38 +129,48 @@
     <div class="card" id="game-card"></div>
 
     <div class="card" id="hist-card">
-        <div class="label" style="margin-bottom:6px;">История (Топ-3)</div>
+        <div class="label" style="margin-bottom:10px;">История действий</div>
         <div id="ui-hist"></div>
+        <button id="btn-load-more" class="btn-more hidden" onclick="loadMore()">Показать еще 7 дней</button>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    tg.backgroundColor = 'var(--tg-bg)';
+    tg.headerColor = 'var(--tg-bg)';
 
     const GOAL = 1000000, DAYS = 400, FRAGS_PER_LIFE = 6;
     let s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
+    let historyLimit = 7;
 
     const dotsContainer = document.getElementById('ui-dots');
     dotsContainer.innerHTML = Array(6).fill('<div class="dot"><div class="dot-fill"></div></div>').join('');
 
     async function load() {
-        tg.CloudStorage.getItem('m_goal_v36', (err, val) => {
+        tg.CloudStorage.getItem('m_goal_v37', (err, val) => {
             if(!err && val) s = JSON.parse(val);
             render();
         });
     }
 
-    function save() { tg.CloudStorage.setItem('m_goal_v36', JSON.stringify(s)); }
+    function save() { tg.CloudStorage.setItem('m_goal_v37', JSON.stringify(s)); }
 
     function secretReset() {
-        tg.showConfirm("Сбросить весь прогресс?", (ok) => {
+        tg.showConfirm("Сбросить весь прогресс безвозвратно?", (ok) => {
             if(ok) {
                 tg.HapticFeedback.notificationOccurred('warning');
                 s = { day: 1, saved: 0, totalFrags: 18.0, roll: null, sug: 0, isSplit: false, history: [] };
                 save(); render();
             }
         });
+    }
+
+    function loadMore() {
+        tg.HapticFeedback.impactOccurred('light');
+        historyLimit += 7;
+        render();
     }
 
     function render() {
@@ -162,6 +195,7 @@
             f.style.height = v >= 1 ? '100%' : (v > 0 ? (v * 100) + '%' : '0%');
         });
 
+        // Скрываем историю при вводе
         const histCard = document.getElementById('hist-card');
         if (s.roll) histCard.classList.add('hidden');
         else histCard.classList.remove('hidden');
@@ -173,7 +207,7 @@
             gc.innerHTML = `
                 <div class="dice">${["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][s.roll]}</div>
                 <input type="number" class="input-sum" id="sum-in" value="${s.sug}" inputmode="numeric">
-                ${(s.sug > 2000 && !s.isSplit) ? `<button class="btn btn-split" onclick="split()">✂️ СПЛИТ (-0.5 фр.)</button>` : ''}
+                ${(s.sug > 1500 && !s.isSplit) ? `<button class="btn btn-split" onclick="split()">✂️ ИСПОЛЬЗОВАТЬ СПЛИТ (-0.5)</button>` : ''}
                 <div style="display:flex; gap:10px">
                     <button class="btn btn-skip" id="skip-btn" onclick="skip()">ПРОПУСК</button>
                     <button class="btn btn-main" onclick="done()">ВНЕСТИ</button>
@@ -182,10 +216,21 @@
             document.getElementById('skip-btn').disabled = s.totalFrags < 1;
         }
 
-        document.getElementById('ui-hist').innerHTML = s.history.slice(-3).reverse().map(h => {
+        // Рендер истории
+        const histData = [...s.history].reverse();
+        const visibleHist = histData.slice(0, historyLimit);
+        document.getElementById('ui-hist').innerHTML = visibleHist.map(h => {
             let cls = h.t === 's' ? 'c-red' : (h.split ? 'c-orange' : (h.v >= h.orig ? 'c-green' : 'c-red'));
-            return `<div class="hist-item"><span>День ${h.d}</span><span class="${cls}">${h.t === 's' ? 'Пропуск' : h.v.toLocaleString() + ' ₽'}</span></div>`;
+            let sign = h.t === 's' ? '🔻' : (h.v >= h.orig ? '💎' : '⚠️');
+            return `<div class="hist-item">
+                <span>День ${h.d} ${sign}</span>
+                <span class="${cls}">${h.t === 's' ? 'Пропуск' : h.v.toLocaleString() + ' ₽'}</span>
+            </div>`;
         }).join('');
+
+        const moreBtn = document.getElementById('btn-load-more');
+        if (histData.length > historyLimit) moreBtn.classList.remove('hidden');
+        else moreBtn.classList.add('hidden');
     }
 
     function roll() {
@@ -210,8 +255,6 @@
 
     function done() {
         const val = parseInt(document.getElementById('sum-in').value) || 0;
-        
-        // Хаптики на внесение
         if(val >= s.sug) tg.HapticFeedback.impactOccurred('heavy');
         else tg.HapticFeedback.impactOccurred('medium');
 
@@ -219,6 +262,7 @@
         s.totalFrags = Number((s.totalFrags + 0.1).toFixed(2));
         s.history.push({d: s.day, v: val, orig: s.sug, t: 'd', split: s.isSplit});
         s.day++; s.roll = null;
+        historyLimit = 7; // Сброс лимита при новом дне
         save(); render();
     }
 
@@ -228,6 +272,7 @@
             s.totalFrags = Number((s.totalFrags - 1).toFixed(2));
             s.history.push({d: s.day, v: 0, orig: s.sug, t: 's'});
             s.day++; s.roll = null;
+            historyLimit = 7;
             save(); render();
         }
     }
